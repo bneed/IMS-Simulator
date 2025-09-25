@@ -1,0 +1,21 @@
+name,family,gas,z,mz,K0,notes
+Acetone,ketone,N2,1,59.05,2.788,Common solvent
+Benzene,aromatic,N2,1,78.11,2.524,Simple aromatic
+Toluene,aromatic,N2,1,92.14,2.456,Substituted benzene
+Methanol,alcohol,N2,1,32.04,3.123,Simple alcohol
+Ethanol,alcohol,N2,1,46.07,2.987,Common alcohol
+Acetic Acid,carboxylic_acid,N2,1,60.05,2.678,Simple carboxylic acid
+Propionic Acid,carboxylic_acid,N2,1,74.08,2.523,Short chain fatty acid
+Butyric Acid,carboxylic_acid,N2,1,88.11,2.412,Short chain fatty acid
+Pentane,alkane,N2,1,72.15,2.834,Simple alkane
+Hexane,alkane,N2,1,86.18,2.712,Common alkane
+Heptane,alkane,N2,1,100.20,2.634,Longer alkane
+Octane,alkane,N2,1,114.23,2.567,Long chain alkane
+Phenol,aromatic,N2,1,94.11,2.389,OH-substituted benzene
+Aniline,aromatic,N2,1,93.13,2.445,NH2-substituted benzene
+Pyridine,aromatic,N2,1,79.10,2.678,N-containing aromatic
+
+
+
+
+
