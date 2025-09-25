@@ -5,7 +5,7 @@ Simulation module for generating IMS spectra and trajectories
 import numpy as np
 from typing import List, Tuple
 from .schemas import Ion, Tube, Spectrum, Peak
-from .physics import drift_time_from_mobility, diffusion_broadening, E_over_N
+from .physics import drift_time_from_mobility, diffusion_broadening, E_over_N, mobility_from_ccs
 
 def simulate_multi_ion(ions: List[Ion], tube: Tube, 
                       time_window_ms: float = 80.0,
@@ -35,15 +35,17 @@ def simulate_multi_ion(ions: List[Ion], tube: Tube,
     gas_mass = tube.gas.mass_amu
     
     for ion in ions:
+        # Calculate mobility using proper Mason-Schamp equation
+        K = mobility_from_ccs(
+            ccs_A2=ion.ccs_A2,
+            mass_amu=ion.mass_amu,
+            charge=ion.charge,
+            gas_mass_amu=gas_mass,
+            temperature_K=tube.temperature_K,
+            pressure_Pa=tube.pressure_kPa * 1000
+        )
+        
         # Calculate drift time
-        K = tube.gas.mass_amu / (ion.mass_amu + tube.gas.mass_amu) * \
-            np.sqrt(ion.mass_amu / tube.gas.mass_amu) * \
-            2.0 / (ion.ccs_A2 ** 0.5) * \
-            (tube.temperature_K / 300.0) ** 0.5 * \
-            (101.325 / tube.pressure_kPa)
-        
-        K *= 1e-4  # Convert to cm²/V·s
-        
         td = drift_time_from_mobility(K, tube.length_m, tube.voltage_V)
         
         # Calculate FWHM from diffusion
@@ -110,20 +112,23 @@ def simulate_trajectories(ions: List[Ion], tube: Tube,
     gas_mass = tube.gas.mass_amu
     
     for ion in ions:
-        # Calculate mobility (simplified)
-        K = tube.gas.mass_amu / (ion.mass_amu + tube.gas.mass_amu) * \
-            np.sqrt(ion.mass_amu / tube.gas.mass_amu) * \
-            2.0 / (ion.ccs_A2 ** 0.5) * \
-            (tube.temperature_K / 300.0) ** 0.5 * \
-            (101.325 / tube.pressure_kPa)
-        
-        K *= 1e-4  # Convert to cm²/V·s
+        # Calculate mobility using proper Mason-Schamp equation
+        K = mobility_from_ccs(
+            ccs_A2=ion.ccs_A2,
+            mass_amu=ion.mass_amu,
+            charge=ion.charge,
+            gas_mass_amu=tube.gas.mass_amu,
+            temperature_K=tube.temperature_K,
+            pressure_Pa=tube.pressure_kPa * 1000
+        )
         
         # Electric field
         E = tube.voltage_V / tube.length_m
         
-        # Drift velocity
-        v_d = K * E * 1e-4  # m/s
+        # Drift velocity (K is in cm²/V·s, E is in V/m)
+        # Convert K to m²/V·s for proper units
+        K_m2_Vs = K / 10000  # cm²/V·s to m²/V·s
+        v_d = K_m2_Vs * E  # m/s
         
         # Time to traverse tube
         t_total = tube.length_m / v_d
