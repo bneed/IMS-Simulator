@@ -12,9 +12,24 @@ import io
 import os
 from pathlib import Path
 
-# Import core modules
-from imsim.physics import Gas, Ion, Tube, E_over_N
-from imsim.sim import simulate_multi_ion, simulate_trajectories, generate_peak_table
+# Import helper for robust module loading
+from import_helper import safe_import_imsim
+
+# Get imsim modules
+imsim_modules = safe_import_imsim()
+
+if imsim_modules is None:
+    st.error("❌ Failed to load IMS Physics modules. Please check the installation.")
+    st.stop()
+
+# Extract modules
+Gas = imsim_modules['physics']['Gas']
+Ion = imsim_modules['physics']['Ion']
+Tube = imsim_modules['physics']['Tube']
+E_over_N = imsim_modules['physics']['E_over_N']
+simulate_multi_ion = imsim_modules['sim']['simulate_multi_ion']
+simulate_trajectories = imsim_modules['sim']['simulate_trajectories']
+generate_peak_table = imsim_modules['sim']['generate_peak_table']
 # Analysis functions - temporarily disabled
 def load_spectrum(file_path):
     """Temporary placeholder - load spectrum from file."""
@@ -161,12 +176,23 @@ def export_peaks_csv(peaks, output_path):
     df = pd.DataFrame([{"time": p.time_ms, "intensity": p.intensity} for p in peaks])
     df.to_csv(output_path, index=False)
     return len(peaks)
-from imsim.library import LibraryManager
-from imsim.ml import MLManager
-from imsim.viz import create_2d_schematic, create_3d_tube, plot_spectrum, plot_trajectories, create_ml_performance_plot
-from imsim.licensing import is_pro, get_cached_info
-from imsim.utils import safe_tab, format_time_ms, format_mobility, format_ccs
-from imsim.schemas import LibraryCompound, MLFeatures, MLPrediction
+# Extract remaining modules
+LibraryManager = imsim_modules['library']['LibraryManager']
+MLManager = imsim_modules['ml']['MLManager']
+create_2d_schematic = imsim_modules['viz']['create_2d_schematic']
+create_3d_tube = imsim_modules['viz']['create_3d_tube']
+plot_spectrum = imsim_modules['viz']['plot_spectrum']
+plot_trajectories = imsim_modules['viz']['plot_trajectories']
+create_ml_performance_plot = imsim_modules['viz']['create_ml_performance_plot']
+is_pro = imsim_modules['licensing']['is_pro']
+get_cached_info = imsim_modules['licensing']['get_cached_info']
+safe_tab = imsim_modules['utils']['safe_tab']
+format_time_ms = imsim_modules['utils']['format_time_ms']
+format_mobility = imsim_modules['utils']['format_mobility']
+format_ccs = imsim_modules['utils']['format_ccs']
+LibraryCompound = imsim_modules['schemas']['LibraryCompound']
+MLFeatures = imsim_modules['schemas']['MLFeatures']
+MLPrediction = imsim_modules['schemas']['MLPrediction']
 
 st.set_page_config(
     page_title="IMS Physics Pro - Pro Version",

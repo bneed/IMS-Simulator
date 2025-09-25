@@ -11,11 +11,174 @@ from plotly.subplots import make_subplots
 import io
 from pathlib import Path
 
-# Import core modules
-from imsim.physics import Gas, Ion, Tube, E_over_N
-from imsim.sim import simulate_multi_ion, generate_peak_table
-from imsim.analyze import load_spectrum, load_ims_stream, baseline_correct, pick_peaks, filter_by_drift_time, calculate_peak_stats, export_peaks_csv
-from imsim.utils import safe_tab, format_time_ms, format_mobility, format_ccs
+# Import helper for robust module loading
+from import_helper import safe_import_imsim
+
+# Get imsim modules
+imsim_modules = safe_import_imsim()
+
+if imsim_modules is None:
+    st.error("❌ Failed to load IMS Physics modules. Please check the installation.")
+    st.stop()
+
+# Extract modules
+Gas = imsim_modules['physics']['Gas']
+Ion = imsim_modules['physics']['Ion']
+Tube = imsim_modules['physics']['Tube']
+E_over_N = imsim_modules['physics']['E_over_N']
+simulate_multi_ion = imsim_modules['sim']['simulate_multi_ion']
+generate_peak_table = imsim_modules['sim']['generate_peak_table']
+safe_tab = imsim_modules['utils']['safe_tab']
+format_time_ms = imsim_modules['utils']['format_time_ms']
+format_mobility = imsim_modules['utils']['format_mobility']
+format_ccs = imsim_modules['utils']['format_ccs']
+
+# Analysis functions - temporarily disabled
+def load_spectrum(file_path):
+    """Temporary placeholder - load spectrum from file."""
+    import pandas as pd
+    import numpy as np
+    
+    # Try to read the file directly and split by tabs
+    try:
+        if hasattr(file_path, 'read'):
+            file_path.seek(0)
+            content = file_path.read().decode('utf-8')
+        else:
+            with open(file_path, 'r') as f:
+                content = f.read()
+        
+        # Split into lines and then split each line by tabs
+        lines = content.strip().split('\n')
+        
+        # Parse each line as tab-separated values
+        data = []
+        for line in lines:
+            if line.strip():  # Skip empty lines
+                values = line.strip().split('\t')
+                # Convert to float, taking first two values
+                if len(values) >= 2:
+                    data.append([float(values[0]), float(values[1])])
+        
+        if not data:
+            raise ValueError("No valid data found in file")
+        
+        # Convert to numpy arrays
+        data_array = np.array(data)
+        time_ms = data_array[:, 0]
+        intensity = data_array[:, 1]
+        
+        return time_ms, intensity
+        
+    except Exception:
+        # Fall back to pandas CSV reading
+        try:
+            if hasattr(file_path, 'read'):
+                file_path.seek(0)
+                df = pd.read_csv(file_path)
+            else:
+                df = pd.read_csv(file_path)
+            
+            time_col = df.columns[0]
+            intensity_col = df.columns[1]
+            return df[time_col].values, df[intensity_col].values
+            
+        except Exception as e:
+            raise ValueError(f"Could not parse file. Error: {e}")
+
+def load_ims_stream(file_path, aggregate="mean"):
+    """Load IMS stream with multiple spectra."""
+    import pandas as pd
+    import numpy as np
+    
+    # Read the file directly to parse multiple spectra
+    try:
+        if hasattr(file_path, 'read'):
+            file_path.seek(0)
+            content = file_path.read().decode('utf-8')
+        else:
+            with open(file_path, 'r') as f:
+                content = f.read()
+        
+        # Split into lines
+        lines = content.strip().split('\n')
+        
+        if not lines:
+            raise ValueError("No data found in file")
+        
+        # Skip first line (description), second line contains drift times (time axis)
+        time_line = lines[1].strip().split('\t')
+        time_ms = np.array([float(x) for x in time_line])  # Already in milliseconds
+        
+        # Remaining lines contain intensity data for each spectrum
+        raw_matrix = []
+        for line in lines[2:]:  # Start from line 3 (index 2)
+            if line.strip():  # Skip empty lines
+                values = line.strip().split('\t')
+                # First value is time (seconds), rest are intensities (volts)
+                if len(values) >= 2:
+                    intensities = [float(x) for x in values[1:]]  # Skip time column
+                    raw_matrix.append(intensities)
+        
+        if not raw_matrix:
+            raise ValueError("No intensity data found")
+        
+        # Convert to numpy array
+        raw_matrix = np.array(raw_matrix)
+        
+        # Calculate aggregated intensity based on requested method
+        if aggregate == "mean":
+            intensity = np.mean(raw_matrix, axis=0)
+        elif aggregate == "max":
+            intensity = np.max(raw_matrix, axis=0)
+        elif aggregate == "min":
+            intensity = np.min(raw_matrix, axis=0)
+        elif aggregate == "sum":
+            intensity = np.sum(raw_matrix, axis=0)
+        else:
+            intensity = np.mean(raw_matrix, axis=0)
+        
+        return time_ms, intensity, raw_matrix
+        
+    except Exception as e:
+        # Fall back to simple spectrum loading
+        time_ms, intensity = load_spectrum(file_path)
+        return time_ms, intensity, np.array([intensity])
+
+def baseline_correct(intensity, smooth_frac=0.05, base_frac=0.2):
+    """Temporary placeholder - baseline correction."""
+    return intensity
+
+def pick_peaks(time_ms, intensity, prom_frac=0.02, min_height=None):
+    """Temporary placeholder - peak detection."""
+    import numpy as np
+    from scipy import signal
+    peak_indices, properties = signal.find_peaks(intensity, prominence=np.max(intensity) * prom_frac)
+    return peak_indices, properties
+
+def filter_by_drift_time(time_ms, intensity, min_time, max_time):
+    """Filter by drift time window."""
+    import numpy as np
+    
+    # Handle case where time and intensity arrays have different lengths
+    # This happens when time has 6001 points but intensity has 6000 points
+    min_len = min(len(time_ms), len(intensity))
+    time_ms = time_ms[:min_len]
+    intensity = intensity[:min_len]
+    
+    mask = (time_ms >= min_time) & (time_ms <= max_time)
+    return time_ms[mask], intensity[mask]
+
+def calculate_peak_stats(peaks):
+    """Temporary placeholder - calculate peak statistics."""
+    return {"count": len(peaks), "time_range_ms": 0, "avg_intensity": 0}
+
+def export_peaks_csv(peaks, output_path):
+    """Temporary placeholder - export peaks."""
+    import pandas as pd
+    df = pd.DataFrame([{"time": p.time_ms, "intensity": p.intensity} for p in peaks])
+    df.to_csv(output_path, index=False)
+    return len(peaks)
 
 st.set_page_config(
     page_title="IMS Physics Pro - Free",
