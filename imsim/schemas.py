@@ -126,9 +126,14 @@ class MLPrediction:
     family_pred: str = ""
     K0_uncertainty: float = 0.0
     family_confidence: float = 0.0
+    K0_lower: float = 0.0
+    K0_upper: float = 0.0
+    top_predictions: List[Dict] = None
     model_name: str = ""
     features_used: List[str] = None
     
     def __post_init__(self):
         if self.features_used is None:
             self.features_used = []
+        if self.top_predictions is None:
+            self.top_predictions = []

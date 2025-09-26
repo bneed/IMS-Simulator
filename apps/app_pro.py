@@ -850,6 +850,61 @@ def render_ml_training():
     col1.metric("K0 Regressor", "✅ Loaded" if k0_loaded else "❌ Not Available")
     col2.metric("Family Classifier", "✅ Loaded" if family_loaded else "❌ Not Available")
     
+    # Model performance summary
+    if k0_loaded or family_loaded:
+        if st.button("📈 Show Model Performance Summary"):
+            try:
+                summary = ml_manager.get_model_performance_summary()
+                
+                st.subheader("🔍 Model Performance Summary")
+                
+                # Feature information
+                st.write(f"**Total Features**: {summary['feature_count']}")
+                if summary['feature_names']:
+                    st.write("**Feature Names**:")
+                    st.code(", ".join(summary['feature_names']))
+                
+                # K0 model details
+                if "k0_model" in summary:
+                    st.subheader("K0 Regressor Details")
+                    k0_info = summary["k0_model"]
+                    col1, col2, col3 = st.columns(3)
+                    col1.metric("Estimators", k0_info["n_estimators"])
+                    col2.metric("Max Depth", k0_info["max_depth"] or "Unlimited")
+                    
+                    # Feature importance
+                    if k0_info["feature_importance"]:
+                        st.write("**Top 5 Most Important Features:**")
+                        sorted_features = sorted(k0_info["feature_importance"].items(), 
+                                               key=lambda x: x[1], reverse=True)[:5]
+                        for feature, importance in sorted_features:
+                            st.write(f"- {feature}: {importance:.3f}")
+                
+                # Family model details
+                if "family_model" in summary:
+                    st.subheader("Family Classifier Details")
+                    family_info = summary["family_model"]
+                    col1, col2, col3 = st.columns(3)
+                    col1.metric("Estimators", family_info["n_estimators"])
+                    col2.metric("Max Depth", family_info["max_depth"] or "Unlimited")
+                    col3.metric("Classes", family_info["n_classes"])
+                    
+                    # Classes
+                    if family_info["classes"]:
+                        st.write("**Available Classes:**")
+                        st.code(", ".join(family_info["classes"]))
+                    
+                    # Feature importance
+                    if family_info["feature_importance"]:
+                        st.write("**Top 5 Most Important Features:**")
+                        sorted_features = sorted(family_info["feature_importance"].items(), 
+                                               key=lambda x: x[1], reverse=True)[:5]
+                        for feature, importance in sorted_features:
+                            st.write(f"- {feature}: {importance:.3f}")
+                
+            except Exception as e:
+                st.error(f"Failed to get model summary: {e}")
+    
     # Training data status
     lib_manager = LibraryManager()
     compounds = lib_manager.get_compounds()
@@ -899,29 +954,92 @@ def render_ml_training():
     
     col1, col2 = st.columns(2)
     
+    # Training options
+    st.subheader("⚙️ Training Options")
+    col1, col2, col3 = st.columns(3)
+    
+    use_cv = col1.checkbox("Use Cross-Validation", value=True, help="Enable 5-fold cross-validation for better model evaluation")
+    optimize_hyperparams = col2.checkbox("Optimize Hyperparameters", value=True, help="Automatically find best model parameters")
+    train_both = col3.checkbox("Train Both Models", value=True, help="Train K0 regressor and family classifier together")
+    
+    # Training buttons
+    col1, col2, col3 = st.columns(3)
+    
     with col1:
-        if st.button("Train K0 Regressor", type="primary"):
+        if st.button("🚀 Train K0 Regressor", type="primary"):
             try:
-                with st.spinner("Training K0 regressor..."):
-                    results = ml_manager.train_k0_regressor(df_training)
+                with st.spinner("Training K0 regressor with enhanced features..."):
+                    results = ml_manager.train_k0_regressor(df_training, use_cv=use_cv, optimize_hyperparams=optimize_hyperparams)
                     
                 st.success("K0 regressor trained successfully!")
-                st.metric("R² Score", f"{results['r2']:.3f}")
-                st.metric("Training Samples", results['n_samples'])
+                
+                # Display enhanced metrics
+                col1, col2, col3, col4 = st.columns(4)
+                col1.metric("R² Score", f"{results['r2']:.3f}")
+                col2.metric("CV R² Mean", f"{results.get('cv_r2_mean', 0):.3f}")
+                col3.metric("MAE", f"{results.get('mae', 0):.3f}")
+                col4.metric("Features", results.get('n_features', 0))
+                
+                if results.get('cv_r2_std'):
+                    st.info(f"Cross-validation R² std: ±{results['cv_r2_std']:.3f}")
+                
+                if results.get('best_params'):
+                    st.json(results['best_params'])
                 
             except Exception as e:
                 st.error(f"Training failed: {e}")
     
     with col2:
-        if st.button("Train Family Classifier"):
+        if st.button("🎯 Train Family Classifier"):
             try:
-                with st.spinner("Training family classifier..."):
-                    results = ml_manager.train_family_classifier(df_training)
+                with st.spinner("Training family classifier with enhanced features..."):
+                    results = ml_manager.train_family_classifier(df_training, use_cv=use_cv, optimize_hyperparams=optimize_hyperparams)
                 
                 st.success("Family classifier trained successfully!")
-                st.metric("Accuracy", f"{results['accuracy']:.3f}")
-                st.metric("F1 Score", f"{results['f1_macro']:.3f}")
-                st.metric("Classes", results['n_classes'])
+                
+                # Display enhanced metrics
+                col1, col2, col3, col4 = st.columns(4)
+                col1.metric("Accuracy", f"{results['accuracy']:.3f}")
+                col2.metric("F1 Score", f"{results['f1_macro']:.3f}")
+                col3.metric("CV F1 Mean", f"{results.get('cv_f1_mean', 0):.3f}")
+                col4.metric("Classes", results['n_classes'])
+                
+                if results.get('cv_f1_std'):
+                    st.info(f"Cross-validation F1 std: ±{results['cv_f1_std']:.3f}")
+                
+                if results.get('best_params'):
+                    st.json(results['best_params'])
+                
+            except Exception as e:
+                st.error(f"Training failed: {e}")
+    
+    with col3:
+        if st.button("🎯 Train Both Models", type="secondary"):
+            try:
+                with st.spinner("Training both models with enhanced features..."):
+                    results = ml_manager.train_models_easy(df_training)
+                
+                st.success("Both models trained successfully!")
+                
+                # Display results for both models
+                if "k0" in results and "error" not in results["k0"]:
+                    st.subheader("K0 Regressor Results")
+                    col1, col2, col3 = st.columns(3)
+                    col1.metric("R² Score", f"{results['k0']['r2']:.3f}")
+                    col2.metric("CV R²", f"{results['k0'].get('cv_r2_mean', 0):.3f}")
+                    col3.metric("Features", results['k0'].get('n_features', 0))
+                
+                if "family" in results and "error" not in results["family"]:
+                    st.subheader("Family Classifier Results")
+                    col1, col2, col3 = st.columns(3)
+                    col1.metric("Accuracy", f"{results['family']['accuracy']:.3f}")
+                    col2.metric("F1 Score", f"{results['family']['f1_macro']:.3f}")
+                    col3.metric("Classes", results['family']['n_classes'])
+                
+                # Show any errors
+                for model_name, result in results.items():
+                    if "error" in result:
+                        st.error(f"{model_name.title()} training failed: {result['error']}")
                 
             except Exception as e:
                 st.error(f"Training failed: {e}")
@@ -954,14 +1072,27 @@ def render_ml_training():
                     
                     st.success("Prediction completed!")
                     
+                    # Enhanced prediction display
                     col1, col2 = st.columns(2)
                     if prediction.K0_pred > 0:
                         col1.metric("Predicted K0", f"{prediction.K0_pred:.3f} cm²/V·s")
+                        if prediction.K0_uncertainty:
+                            col1.metric("Uncertainty", f"±{prediction.K0_uncertainty:.3f} cm²/V·s")
+                    
                     if prediction.family_pred:
                         col2.metric("Predicted Family", prediction.family_pred)
+                        if prediction.family_confidence:
+                            col2.metric("Confidence", f"{prediction.family_confidence:.2f}")
                     
-                    if prediction.K0_uncertainty:
-                        st.info(f"Uncertainty: ±{prediction.K0_uncertainty:.3f} cm²/V·s")
+                    # Show prediction intervals
+                    if hasattr(prediction, 'K0_lower') and hasattr(prediction, 'K0_upper'):
+                        st.info(f"95% Prediction Interval: [{prediction.K0_lower:.3f}, {prediction.K0_upper:.3f}] cm²/V·s")
+                    
+                    # Show top predictions for family
+                    if hasattr(prediction, 'top_predictions') and prediction.top_predictions:
+                        st.subheader("Top Family Predictions")
+                        for i, pred in enumerate(prediction.top_predictions[:3]):
+                            st.write(f"{i+1}. {pred['class']}: {pred['confidence']:.3f}")
                     
                 except Exception as e:
                     st.error(f"Prediction failed: {e}")
