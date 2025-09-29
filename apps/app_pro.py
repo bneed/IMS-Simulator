@@ -269,6 +269,7 @@ tabs = st.tabs([
     "📚 Library", 
     "🤖 ML Training", 
     "🔬 Sim Lab", 
+    "🧬 Molecular Structure",
     "📐 Visualization", 
     "🚀 Trajectories"
 ])
@@ -1097,6 +1098,369 @@ def render_ml_training():
                 except Exception as e:
                     st.error(f"Prediction failed: {e}")
 
+def render_molecular_structure():
+    """Render molecular structure tab."""
+    pro_only()
+    
+    st.header("🧬 Molecular Structure & Reactions")
+    
+    # Check if RDKit is available
+    try:
+        import rdkit
+        from rdkit import Chem
+        from rdkit.Chem import Draw, Descriptors, rdMolDescriptors
+        from rdkit.Chem.Draw import IPythonConsole
+        rdkit_available = True
+    except ImportError:
+        rdkit_available = False
+        st.warning("⚠️ RDKit not available. Install with: `pip install rdkit` for full molecular structure features.")
+    
+    # Molecular input section
+    st.subheader("🔬 Molecular Input")
+    
+    input_method = st.radio(
+        "Choose input method:",
+        ["SMILES String", "Chemical Formula", "Manual Entry"],
+        horizontal=True
+    )
+    
+    molecule_data = None
+    
+    if input_method == "SMILES String":
+        smiles_input = st.text_input(
+            "Enter SMILES string:",
+            placeholder="e.g., CCO (ethanol), C1=CC=CC=C1 (benzene)",
+            help="Enter a valid SMILES string for molecular structure"
+        )
+        
+        if smiles_input and rdkit_available:
+            try:
+                mol = Chem.MolFromSmiles(smiles_input)
+                if mol is not None:
+                    molecule_data = {
+                        'mol': mol,
+                        'smiles': smiles_input,
+                        'formula': rdMolDescriptors.CalcMolFormula(mol),
+                        'mw': Descriptors.MolWt(mol),
+                        'logp': Descriptors.MolLogP(mol),
+                        'hbd': Descriptors.NumHDonors(mol),
+                        'hba': Descriptors.NumHAcceptors(mol),
+                        'tpsa': Descriptors.TPSA(mol)
+                    }
+                    st.success("✅ Valid SMILES string!")
+                else:
+                    st.error("❌ Invalid SMILES string")
+            except Exception as e:
+                st.error(f"❌ Error parsing SMILES: {e}")
+    
+    elif input_method == "Chemical Formula":
+        formula_input = st.text_input(
+            "Enter chemical formula:",
+            placeholder="e.g., C2H6O, C6H6",
+            help="Enter a chemical formula (limited functionality without SMILES)"
+        )
+        
+        if formula_input:
+            # Basic formula parsing (simplified)
+            st.info("ℹ️ Chemical formula input provides basic information. Use SMILES for full structure analysis.")
+            molecule_data = {
+                'formula': formula_input,
+                'smiles': None,
+                'mol': None
+            }
+    
+    else:  # Manual Entry
+        col1, col2 = st.columns(2)
+        with col1:
+            name = st.text_input("Molecule Name", "Unknown")
+            formula = st.text_input("Chemical Formula", "")
+            mw = st.number_input("Molecular Weight (g/mol)", 0.0, 5000.0, 100.0)
+        
+        with col2:
+            logp = st.number_input("LogP", -10.0, 10.0, 0.0)
+            hbd = st.number_input("H-bond Donors", 0, 20, 0)
+            hba = st.number_input("H-bond Acceptors", 0, 20, 0)
+        
+        if name and formula:
+            molecule_data = {
+                'name': name,
+                'formula': formula,
+                'mw': mw,
+                'logp': logp,
+                'hbd': hbd,
+                'hba': hba,
+                'smiles': None,
+                'mol': None
+            }
+    
+    # Display molecular information
+    if molecule_data:
+        st.subheader("📊 Molecular Properties")
+        
+        col1, col2, col3, col4 = st.columns(4)
+        
+        if 'formula' in molecule_data:
+            col1.metric("Formula", molecule_data['formula'])
+        if 'mw' in molecule_data:
+            col2.metric("MW (g/mol)", f"{molecule_data['mw']:.2f}")
+        if 'logp' in molecule_data:
+            col3.metric("LogP", f"{molecule_data['logp']:.2f}")
+        if 'tpsa' in molecule_data:
+            col4.metric("TPSA (Å²)", f"{molecule_data['tpsa']:.2f}")
+        
+        # Additional properties
+        if 'hbd' in molecule_data and 'hba' in molecule_data:
+            col1, col2 = st.columns(2)
+            col1.metric("H-bond Donors", molecule_data['hbd'])
+            col2.metric("H-bond Acceptors", molecule_data['hba'])
+    
+    # 3D Molecular Structure Visualization
+    if molecule_data and molecule_data.get('mol') and rdkit_available:
+        st.subheader("🔬 3D Molecular Structure")
+        
+        try:
+            # Generate 3D coordinates
+            from rdkit.Chem import rdMolDescriptors
+            mol_3d = Chem.AddHs(molecule_data['mol'])
+            from rdkit.Chem import AllChem
+            AllChem.EmbedMolecule(mol_3d)
+            AllChem.MMFFOptimizeMolecule(mol_3d)
+            
+            # Create 3D visualization using plotly
+            conf = mol_3d.GetConformer()
+            xyz = conf.GetPositions()
+            atoms = [mol_3d.GetAtomWithIdx(i).GetSymbol() for i in range(mol_3d.GetNumAtoms())]
+            
+            # Create 3D scatter plot
+            fig_3d = go.Figure()
+            
+            # Color mapping for atoms
+            atom_colors = {
+                'C': 'black', 'H': 'white', 'O': 'red', 'N': 'blue',
+                'S': 'yellow', 'P': 'orange', 'F': 'green', 'Cl': 'green',
+                'Br': 'brown', 'I': 'purple'
+            }
+            
+            for atom_type in set(atoms):
+                mask = [i for i, a in enumerate(atoms) if a == atom_type]
+                if mask:
+                    fig_3d.add_trace(go.Scatter3d(
+                        x=[xyz[i][0] for i in mask],
+                        y=[xyz[i][1] for i in mask],
+                        z=[xyz[i][2] for i in mask],
+                        mode='markers',
+                        marker=dict(
+                            size=8,
+                            color=atom_colors.get(atom_type, 'gray'),
+                            symbol='circle'
+                        ),
+                        name=atom_type,
+                        text=[f"{atom_type}{i}" for i in mask],
+                        hovertemplate=f"<b>{atom_type}</b><br>Index: %{{text}}<extra></extra>"
+                    ))
+            
+            # Add bonds
+            for bond in mol_3d.GetBonds():
+                i, j = bond.GetBeginAtomIdx(), bond.GetEndAtomIdx()
+                fig_3d.add_trace(go.Scatter3d(
+                    x=[xyz[i][0], xyz[j][0]],
+                    y=[xyz[i][1], xyz[j][1]],
+                    z=[xyz[i][2], xyz[j][2]],
+                    mode='lines',
+                    line=dict(color='gray', width=3),
+                    showlegend=False,
+                    hoverinfo='skip'
+                ))
+            
+            fig_3d.update_layout(
+                title="3D Molecular Structure",
+                scene=dict(
+                    xaxis_title="X (Å)",
+                    yaxis_title="Y (Å)",
+                    zaxis_title="Z (Å)",
+                    aspectmode='data'
+                ),
+                width=800,
+                height=600
+            )
+            
+            st.plotly_chart(fig_3d, use_container_width=True)
+            
+        except Exception as e:
+            st.error(f"Error generating 3D structure: {e}")
+    
+    # 2D Structure (if available)
+    if molecule_data and molecule_data.get('mol') and rdkit_available:
+        st.subheader("📐 2D Molecular Structure")
+        
+        try:
+            # Generate 2D structure
+            img = Draw.MolToImage(molecule_data['mol'], size=(400, 300))
+            st.image(img, caption="2D Molecular Structure")
+        except Exception as e:
+            st.error(f"Error generating 2D structure: {e}")
+    
+    # Energy Diagrams and Transition States
+    st.subheader("⚡ Energy Diagrams & Transition States")
+    
+    # Reaction type selection
+    reaction_type = st.selectbox(
+        "Select reaction type:",
+        ["Ion-Molecule Reaction", "Fragmentation", "Adduct Formation", "Charge Transfer", "Custom"]
+    )
+    
+    if reaction_type != "Custom":
+        # Predefined reaction templates
+        if reaction_type == "Ion-Molecule Reaction":
+            st.info("🔄 Ion-molecule reactions in IMS involve collision between ions and neutral molecules")
+            
+            # Energy profile
+            fig_energy = go.Figure()
+            
+            # Sample energy profile data
+            x_vals = [0, 1, 2, 3, 4, 5]
+            y_vals = [0, 15, 25, 20, 10, 5]  # Energy in kcal/mol
+            labels = ["Reactants", "TS1", "Intermediate", "TS2", "Products", "Final"]
+            
+            fig_energy.add_trace(go.Scatter(
+                x=x_vals, y=y_vals, mode='lines+markers',
+                line=dict(color='blue', width=3),
+                marker=dict(size=10, color='red'),
+                name="Energy Profile"
+            ))
+            
+            # Add labels
+            for i, (x, y, label) in enumerate(zip(x_vals, y_vals, labels)):
+                fig_energy.add_annotation(
+                    x=x, y=y, text=label,
+                    showarrow=True, arrowhead=2, arrowcolor="black",
+                    ax=0, ay=-30
+                )
+            
+            fig_energy.update_layout(
+                title="Ion-Molecule Reaction Energy Profile",
+                xaxis_title="Reaction Coordinate",
+                yaxis_title="Energy (kcal/mol)",
+                height=400
+            )
+            
+            st.plotly_chart(fig_energy, use_container_width=True)
+        
+        elif reaction_type == "Fragmentation":
+            st.info("💥 Fragmentation reactions involve breaking of chemical bonds")
+            
+            # Fragmentation energy diagram
+            fig_frag = go.Figure()
+            
+            x_vals = [0, 1, 2, 3, 4]
+            y_vals = [0, 20, 35, 25, 15]
+            labels = ["Parent Ion", "TS", "Fragment 1", "Fragment 2", "Products"]
+            
+            fig_frag.add_trace(go.Scatter(
+                x=x_vals, y=y_vals, mode='lines+markers',
+                line=dict(color='red', width=3),
+                marker=dict(size=10, color='orange'),
+                name="Fragmentation"
+            ))
+            
+            for i, (x, y, label) in enumerate(zip(x_vals, y_vals, labels)):
+                fig_frag.add_annotation(
+                    x=x, y=y, text=label,
+                    showarrow=True, arrowhead=2, arrowcolor="black",
+                    ax=0, ay=-30
+                )
+            
+            fig_frag.update_layout(
+                title="Fragmentation Energy Profile",
+                xaxis_title="Reaction Coordinate",
+                yaxis_title="Energy (kcal/mol)",
+                height=400
+            )
+            
+            st.plotly_chart(fig_frag, use_container_width=True)
+    
+    # Transition State Analysis
+    st.subheader("🔬 Transition State Analysis")
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        activation_energy = st.number_input(
+            "Activation Energy (kcal/mol)", 
+            0.0, 100.0, 15.0, 1.0,
+            help="Energy barrier for the reaction"
+        )
+        
+        reaction_enthalpy = st.number_input(
+            "Reaction Enthalpy (kcal/mol)", 
+            -50.0, 50.0, -5.0, 1.0,
+            help="Overall energy change"
+        )
+    
+    with col2:
+        temperature = st.number_input(
+            "Temperature (K)", 
+            200.0, 1000.0, 298.15, 10.0,
+            help="Reaction temperature"
+        )
+        
+        pressure = st.number_input(
+            "Pressure (atm)", 
+            0.1, 10.0, 1.0, 0.1,
+            help="Reaction pressure"
+        )
+    
+    # Calculate reaction kinetics
+    if st.button("Calculate Reaction Kinetics"):
+        # Arrhenius equation: k = A * exp(-Ea/RT)
+        R = 0.001987  # kcal/(mol·K)
+        A = 1e13  # Pre-exponential factor (s⁻¹)
+        
+        k = A * np.exp(-activation_energy / (R * temperature))
+        half_life = np.log(2) / k if k > 0 else float('inf')
+        
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Rate Constant (s⁻¹)", f"{k:.2e}")
+        col2.metric("Half-life (s)", f"{half_life:.2e}")
+        col3.metric("Arrhenius Factor", f"{A:.2e}")
+    
+    # IMS Integration
+    if molecule_data:
+        st.subheader("🔗 IMS Integration")
+        
+        if st.button("Calculate IMS Properties"):
+            try:
+                # Estimate CCS from molecular properties
+                if molecule_data.get('mw'):
+                    # Simple CCS estimation (more sophisticated methods available)
+                    estimated_ccs = 0.5 * (molecule_data['mw'] ** 0.67)  # Rough approximation
+                    
+                    st.success("✅ IMS Properties Calculated")
+                    
+                    col1, col2, col3 = st.columns(3)
+                    col1.metric("Estimated CCS (Å²)", f"{estimated_ccs:.1f}")
+                    
+                    if molecule_data.get('mw'):
+                        col2.metric("Molecular Weight", f"{molecule_data['mw']:.1f} g/mol")
+                    
+                    if molecule_data.get('tpsa'):
+                        col3.metric("TPSA", f"{molecule_data['tpsa']:.1f} Å²")
+                    
+                    # Add to IMS simulation
+                    if st.button("Add to IMS Simulation"):
+                        st.session_state['molecular_ion'] = {
+                            'name': molecule_data.get('name', 'Molecule'),
+                            'mass_amu': molecule_data.get('mw', 100.0),
+                            'ccs_A2': estimated_ccs,
+                            'charge': 1,
+                            'smiles': molecule_data.get('smiles', ''),
+                            'formula': molecule_data.get('formula', '')
+                        }
+                        st.success("✅ Added to IMS simulation parameters")
+                
+            except Exception as e:
+                st.error(f"Error calculating IMS properties: {e}")
+
 def render_sim_lab():
     """Render simulation lab tab."""
     pro_only()
@@ -1478,9 +1842,12 @@ with tabs[4]:
     render_sim_lab()
 
 with tabs[5]:
-    render_visualization()
+    render_molecular_structure()
 
 with tabs[6]:
+    render_visualization()
+
+with tabs[7]:
     render_trajectories()
 
 # Footer
