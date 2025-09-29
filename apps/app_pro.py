@@ -1149,7 +1149,7 @@ def render_molecular_structure():
         st.subheader("🔬 Molecular Input")
         input_method = st.radio(
             "Input Method:",
-            ["Demo Molecule", "SMILES", "Z-Matrix", "Cartesian Coordinates", "Gaussian Input File"],
+            ["Demo Molecule", "Molecular Builder", "SMILES", "Z-Matrix", "Cartesian Coordinates", "Gaussian Input File"],
             horizontal=True
         )
         
@@ -1240,6 +1240,192 @@ def render_molecular_structure():
                 }
                 st.success(f"✅ Loaded {demo_molecule}")
         
+        elif input_method == "Molecular Builder":
+            st.subheader("🔧 Interactive Molecular Builder")
+            
+            # Molecule type selection
+            mol_type = st.selectbox(
+                "Molecule Type:",
+                ["Simple Molecules", "Aromatic Compounds", "Functional Groups", "Biomolecules", "Custom Build"]
+            )
+            
+            if mol_type == "Simple Molecules":
+                simple_mol = st.selectbox(
+                    "Select Simple Molecule:",
+                    ["Water (H2O)", "Ammonia (NH3)", "Methane (CH4)", "Ethane (C2H6)", 
+                     "Propane (C3H8)", "Butane (C4H10)", "Pentane (C5H12)", "Hexane (C6H14)"]
+                )
+                
+                simple_data = {
+                    "Water (H2O)": {
+                        "formula": "H2O",
+                        "coords": [
+                            "O  0.000000  0.000000  0.117300",
+                            "H  0.000000  0.757200 -0.469200",
+                            "H  0.000000 -0.757200 -0.469200"
+                        ]
+                    },
+                    "Ammonia (NH3)": {
+                        "formula": "NH3",
+                        "coords": [
+                            "N  0.000000  0.000000  0.116700",
+                            "H  0.000000  0.939700 -0.272300",
+                            "H  0.815600 -0.469900 -0.272300",
+                            "H -0.815600 -0.469900 -0.272300"
+                        ]
+                    },
+                    "Methane (CH4)": {
+                        "formula": "CH4",
+                        "coords": [
+                            "C  0.000000  0.000000  0.000000",
+                            "H  0.629118  0.629118  0.629118",
+                            "H -0.629118 -0.629118  0.629118",
+                            "H -0.629118  0.629118 -0.629118",
+                            "H  0.629118 -0.629118 -0.629118"
+                        ]
+                    },
+                    "Ethane (C2H6)": {
+                        "formula": "C2H6",
+                        "coords": [
+                            "C -0.750000  0.000000  0.000000",
+                            "C  0.750000  0.000000  0.000000",
+                            "H -1.200000  1.020000  0.000000",
+                            "H -1.200000 -0.510000  0.883000",
+                            "H -1.200000 -0.510000 -0.883000",
+                            "H  1.200000 -1.020000  0.000000",
+                            "H  1.200000  0.510000 -0.883000",
+                            "H  1.200000  0.510000  0.883000"
+                        ]
+                    }
+                }
+                
+                if simple_mol in simple_data:
+                    molecule_data = {
+                        'smiles': simple_mol,
+                        'coords': simple_data[simple_mol]['coords'],
+                        'formula': simple_data[simple_mol]['formula'],
+                        'charge': 0,
+                        'multiplicity': 1
+                    }
+                    st.success(f"✅ Built {simple_mol}")
+            
+            elif mol_type == "Aromatic Compounds":
+                aromatic_mol = st.selectbox(
+                    "Select Aromatic Compound:",
+                    ["Benzene (C6H6)", "Toluene (C7H8)", "Phenol (C6H6O)", "Aniline (C6H7N)", 
+                     "Pyridine (C5H5N)", "Naphthalene (C10H8)", "Anthracene (C14H10)"]
+                )
+                
+                aromatic_data = {
+                    "Benzene (C6H6)": {
+                        "formula": "C6H6",
+                        "coords": [
+                            "C  1.212400  0.700000  0.000000",
+                            "C  0.000000  1.400000  0.000000",
+                            "C -1.212400  0.700000  0.000000",
+                            "C -1.212400 -0.700000  0.000000",
+                            "C  0.000000 -1.400000  0.000000",
+                            "C  1.212400 -0.700000  0.000000",
+                            "H  2.151400  1.242000  0.000000",
+                            "H  0.000000  2.482000  0.000000",
+                            "H -2.151400  1.242000  0.000000",
+                            "H -2.151400 -1.242000  0.000000",
+                            "H  0.000000 -2.482000  0.000000",
+                            "H  2.151400 -1.242000  0.000000"
+                        ]
+                    },
+                    "Toluene (C7H8)": {
+                        "formula": "C7H8",
+                        "coords": [
+                            "C  1.212400  0.700000  0.000000",
+                            "C  0.000000  1.400000  0.000000",
+                            "C -1.212400  0.700000  0.000000",
+                            "C -1.212400 -0.700000  0.000000",
+                            "C  0.000000 -1.400000  0.000000",
+                            "C  1.212400 -0.700000  0.000000",
+                            "C  2.151400  0.000000  0.000000",
+                            "H  2.151400  1.242000  0.000000",
+                            "H  0.000000  2.482000  0.000000",
+                            "H -2.151400  1.242000  0.000000",
+                            "H -2.151400 -1.242000  0.000000",
+                            "H  0.000000 -2.482000  0.000000",
+                            "H  2.151400 -1.242000  0.000000",
+                            "H  3.200000  0.000000  0.000000"
+                        ]
+                    }
+                }
+                
+                if aromatic_mol in aromatic_data:
+                    molecule_data = {
+                        'smiles': aromatic_mol,
+                        'coords': aromatic_data[aromatic_mol]['coords'],
+                        'formula': aromatic_data[aromatic_mol]['formula'],
+                        'charge': 0,
+                        'multiplicity': 1
+                    }
+                    st.success(f"✅ Built {aromatic_mol}")
+            
+            elif mol_type == "Functional Groups":
+                func_group = st.selectbox(
+                    "Select Functional Group:",
+                    ["Alcohol (R-OH)", "Aldehyde (R-CHO)", "Ketone (R-CO-R)", "Carboxylic Acid (R-COOH)",
+                     "Ester (R-COO-R)", "Amine (R-NH2)", "Amide (R-CONH2)", "Ether (R-O-R)"]
+                )
+                
+                # Simple alcohol example
+                if func_group == "Alcohol (R-OH)":
+                    st.info("Building methanol (CH3OH) as example")
+                    molecule_data = {
+                        'smiles': "CO",
+                        'coords': [
+                            "C  0.000000  0.000000  0.000000",
+                            "O  1.400000  0.000000  0.000000",
+                            "H -0.500000  1.000000  0.000000",
+                            "H -0.500000 -0.500000  0.866000",
+                            "H -0.500000 -0.500000 -0.866000",
+                            "H  1.900000  0.000000  0.000000"
+                        ],
+                        'formula': 'CH4O',
+                        'charge': 0,
+                        'multiplicity': 1
+                    }
+                    st.success("✅ Built Methanol (CH3OH)")
+            
+            elif mol_type == "Custom Build":
+                st.subheader("🔧 Custom Molecular Builder")
+                
+                # Simple coordinate input
+                st.write("**Enter Cartesian Coordinates (one atom per line):**")
+                st.write("Format: Element X Y Z")
+                
+                coord_input = st.text_area(
+                    "Coordinates:",
+                    placeholder="C  0.000000  0.000000  0.000000\nH  1.089000  0.000000  0.000000\nH -0.363000  1.027000  0.000000",
+                    height=150,
+                    help="Enter coordinates manually"
+                )
+                
+                if coord_input.strip():
+                    try:
+                        coords = []
+                        for line in coord_input.strip().split('\n'):
+                            if line.strip():
+                                parts = line.strip().split()
+                                if len(parts) >= 4:
+                                    coords.append(f"{parts[0]:2s} {float(parts[1]):12.6f} {float(parts[2]):12.6f} {float(parts[3]):12.6f}")
+                        
+                        if coords:
+                            molecule_data = {
+                                'smiles': 'Custom',
+                                'coords': coords,
+                                'formula': 'Custom',
+                                'charge': 0,
+                                'multiplicity': 1
+                            }
+                            st.success(f"✅ Built custom molecule with {len(coords)} atoms")
+                    except Exception as e:
+                        st.error(f"Error parsing coordinates: {e}")
+        
         elif input_method == "SMILES":
             smiles_input = st.text_input(
                 "SMILES String:",
@@ -1247,36 +1433,115 @@ def render_molecular_structure():
                 help="Enter SMILES string for molecular structure"
             )
             
-            if smiles_input and rdkit_available:
-                try:
-                    mol = Chem.MolFromSmiles(smiles_input)
-                    if mol is not None:
-                        # Add hydrogens and generate 3D coordinates
-                        mol_3d = Chem.AddHs(mol)
-                        AllChem.EmbedMolecule(mol_3d)
-                        AllChem.MMFFOptimizeMolecule(mol_3d)
-                        
-                        # Extract coordinates
-                        conf = mol_3d.GetConformer()
-                        coords = []
-                        for i in range(mol_3d.GetNumAtoms()):
-                            atom = mol_3d.GetAtomWithIdx(i)
-                            pos = conf.GetAtomPosition(i)
-                            coords.append(f"{atom.GetSymbol():2s} {pos.x:12.6f} {pos.y:12.6f} {pos.z:12.6f}")
-                        
+            if smiles_input:
+                if rdkit_available:
+                    try:
+                        mol = Chem.MolFromSmiles(smiles_input)
+                        if mol is not None:
+                            # Add hydrogens and generate 3D coordinates
+                            mol_3d = Chem.AddHs(mol)
+                            AllChem.EmbedMolecule(mol_3d)
+                            AllChem.MMFFOptimizeMolecule(mol_3d)
+                            
+                            # Extract coordinates
+                            conf = mol_3d.GetConformer()
+                            coords = []
+                            for i in range(mol_3d.GetNumAtoms()):
+                                atom = mol_3d.GetAtomWithIdx(i)
+                                pos = conf.GetAtomPosition(i)
+                                coords.append(f"{atom.GetSymbol():2s} {pos.x:12.6f} {pos.y:12.6f} {pos.z:12.6f}")
+                            
+                            molecule_data = {
+                                'mol': mol_3d,
+                                'smiles': smiles_input,
+                                'coords': coords,
+                                'formula': rdMolDescriptors.CalcMolFormula(mol),
+                                'charge': 0,
+                                'multiplicity': 1
+                            }
+                            st.success("✅ SMILES parsed successfully!")
+                        else:
+                            st.error("❌ Invalid SMILES string")
+                    except Exception as e:
+                        st.error(f"❌ Error parsing SMILES: {e}")
+                else:
+                    # Simple SMILES parser without RDKit
+                    st.warning("⚠️ RDKit not available. Using simple SMILES parser.")
+                    
+                    # Basic SMILES to coordinates mapping
+                    simple_smiles = {
+                        "C": {
+                            "formula": "CH4",
+                            "coords": [
+                                "C  0.000000  0.000000  0.000000",
+                                "H  0.629118  0.629118  0.629118",
+                                "H -0.629118 -0.629118  0.629118",
+                                "H -0.629118  0.629118 -0.629118",
+                                "H  0.629118 -0.629118 -0.629118"
+                            ]
+                        },
+                        "O": {
+                            "formula": "H2O",
+                            "coords": [
+                                "O  0.000000  0.000000  0.117300",
+                                "H  0.000000  0.757200 -0.469200",
+                                "H  0.000000 -0.757200 -0.469200"
+                            ]
+                        },
+                        "N": {
+                            "formula": "NH3",
+                            "coords": [
+                                "N  0.000000  0.000000  0.116700",
+                                "H  0.000000  0.939700 -0.272300",
+                                "H  0.815600 -0.469900 -0.272300",
+                                "H -0.815600 -0.469900 -0.272300"
+                            ]
+                        },
+                        "CCO": {
+                            "formula": "C2H6O",
+                            "coords": [
+                                "C -1.186000 -0.500000  0.000000",
+                                "C  0.186000  0.500000  0.000000",
+                                "O  1.186000 -0.500000  0.000000",
+                                "H -1.186000 -1.500000  0.000000",
+                                "H -1.186000 -0.500000  1.000000",
+                                "H -1.186000 -0.500000 -1.000000",
+                                "H  0.186000  1.500000  0.000000",
+                                "H  0.186000  0.500000  1.000000",
+                                "H  0.186000  0.500000 -1.000000"
+                            ]
+                        },
+                        "C1=CC=CC=C1": {
+                            "formula": "C6H6",
+                            "coords": [
+                                "C  1.212400  0.700000  0.000000",
+                                "C  0.000000  1.400000  0.000000",
+                                "C -1.212400  0.700000  0.000000",
+                                "C -1.212400 -0.700000  0.000000",
+                                "C  0.000000 -1.400000  0.000000",
+                                "C  1.212400 -0.700000  0.000000",
+                                "H  2.151400  1.242000  0.000000",
+                                "H  0.000000  2.482000  0.000000",
+                                "H -2.151400  1.242000  0.000000",
+                                "H -2.151400 -1.242000  0.000000",
+                                "H  0.000000 -2.482000  0.000000",
+                                "H  2.151400 -1.242000  0.000000"
+                            ]
+                        }
+                    }
+                    
+                    if smiles_input in simple_smiles:
                         molecule_data = {
-                            'mol': mol_3d,
                             'smiles': smiles_input,
-                            'coords': coords,
-                            'formula': rdMolDescriptors.CalcMolFormula(mol),
+                            'coords': simple_smiles[smiles_input]['coords'],
+                            'formula': simple_smiles[smiles_input]['formula'],
                             'charge': 0,
                             'multiplicity': 1
                         }
-                        st.success("✅ SMILES parsed successfully!")
+                        st.success(f"✅ Parsed {smiles_input} successfully!")
                     else:
-                        st.error("❌ Invalid SMILES string")
-                except Exception as e:
-                    st.error(f"❌ Error parsing SMILES: {e}")
+                        st.error(f"❌ SMILES '{smiles_input}' not in simple parser. Try: C, O, N, CCO, C1=CC=CC=C1")
+                        st.info("💡 Use 'Molecular Builder' for more molecules without RDKit")
         
         elif input_method == "Cartesian Coordinates":
             st.text_area(
