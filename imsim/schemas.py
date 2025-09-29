@@ -1,7 +1,7 @@
 """Data schemas for IMS Physics Pro."""
 
 from dataclasses import dataclass
-from typing import List, Optional
+from typing import List, Optional, Dict
 import numpy as np
 
 @dataclass
